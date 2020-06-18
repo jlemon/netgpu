@@ -5,9 +5,11 @@ ifdef cuda
 CC = /usr/local/cuda/bin/nvcc
 EXTRA_LIBS = -lcuda
 DEFINES = -DUSE_CUDA=1
+OPTS = -O
 else
 CC = cc
 EXTRA_LIBS =
+OPTS = -fPIC -O
 endif
 
 #TOOLS_DIR = /root/linux/lib
@@ -20,7 +22,7 @@ endif
 INC = -I.
 LIBS = libbpf.a $(EXTRA_LIBS) -lz -lelf
 LIBS += -L. -lnetgpu
-CFLAGS = -g -fPIC -O $(INC) $(DEFINES)
+CFLAGS = -g $(OPTS) $(INC) $(DEFINES)
 
 lib_SRCS = \
 	netgpu_lib.c \

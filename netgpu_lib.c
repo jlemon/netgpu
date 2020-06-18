@@ -301,7 +301,7 @@ netgpu_alloc_gpu_memory(size_t size)
         void *gpu;
         uint64_t id;
 
-printf("allocating %ld from gpu...\n", size);
+	printf("allocating %ld from gpu...\n", size);
         CHECK(cudaMalloc(&gpu, size));
 
         id = pin_buffer(gpu, size);
@@ -312,6 +312,7 @@ printf("allocating %ld from gpu...\n", size);
 static void *
 netgpu_free_gpu_memory(void *area, size_t size)
 {
+	printf("freeing %ld from gpu...\n", size);
 	CHECK(cudaFree(area));
 }
 #endif
