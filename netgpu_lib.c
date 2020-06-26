@@ -24,10 +24,10 @@
 #include "cuda_runtime.h"
 #endif
 
-#define MSG_NETDMA      0x8000000       
-#define SO_REGISTER_DMA         69
+#define MSG_NETDMA		0x8000000
+#define SO_REGISTER_DMA		69
 
-#define PAGE_SIZE	4096
+#define PAGE_SIZE		4096
 
 struct netgpu {
 	int fd;
@@ -201,16 +201,16 @@ netgpu_recycle_complete(struct netgpu *ctx)
 int
 netgpu_register_region(struct netgpu *ctx, void *va, size_t size, bool gpumem)
 {
-        struct dma_region dmar;
+	struct dma_region dmar;
 
-        dmar.iov.iov_base = va;
-        dmar.iov.iov_len = size;
-        dmar.host_memory  = !gpumem;
+	dmar.iov.iov_base = va;
+	dmar.iov.iov_len = size;
+	dmar.host_memory  = !gpumem;
 
-        if (ioctl(ctx->fd, NETGPU_IOCTL_ADD_REGION, &dmar))
-                err_exit("ioctl(ADD_REGION)");
+	if (ioctl(ctx->fd, NETGPU_IOCTL_ADD_REGION, &dmar))
+		err_exit("ioctl(ADD_REGION)");
 
-        return 0;
+	return 0;
 }
 
 int
@@ -221,13 +221,13 @@ netgpu_attach_socket(struct netgpu *ctx, int fd)
 	if (setsockopt(fd, SOL_SOCKET, SO_ZEROCOPY, &one, sizeof(one)))
 		err_exit("setsockopt(SO_ZEROCOPY)");
 
-        if (setsockopt(fd, SOL_SOCKET, SO_BINDTOIFINDEX, &ctx->ifindex,
-                       sizeof(ctx->ifindex)))
-                err_exit("setsockopt(bind)");
+	if (setsockopt(fd, SOL_SOCKET, SO_BINDTOIFINDEX, &ctx->ifindex,
+		       sizeof(ctx->ifindex)))
+		err_exit("setsockopt(bind)");
 
-        /* attaches sk to ctx and sets up custom data_ready hook */
+	/* attaches sk to ctx and sets up custom data_ready hook */
 	if (setsockopt(fd, SOL_SOCKET, SO_REGISTER_DMA,
-                       &ctx->fd, sizeof(ctx->fd)))
+		       &ctx->fd, sizeof(ctx->fd)))
 		err_exit("setsockopt(REGISTER_DMA)");
 
 	return 0;
@@ -258,55 +258,55 @@ netgpu_free_host_memory(void *area, size_t size)
 }
 
 #ifdef USE_CUDA
-#define err_with(e, ...) do {                                           \
-        fprintf(stderr, "%s:%d:%s %s(%d) ",                             \
-                __FILE__, __LINE__, __func__, strerror(e), e);          \
-        fprintf(stderr, __VA_ARGS__);                                   \
-        fprintf(stderr, "\n");                                          \
-        exit(1);                                                        \
+#define err_with(e, ...) do {						\
+	fprintf(stderr, "%s:%d:%s %s(%d) ",				\
+		__FILE__, __LINE__, __func__, strerror(e), e);		\
+	fprintf(stderr, __VA_ARGS__);					\
+	fprintf(stderr, "\n");						\
+	exit(1);							\
 } while (0)
 
 #define err_exit(...) err_with(errno, __VA_ARGS__)
 
-#define CHECK(fcn) do {                                                 \
-        CUresult err = fcn;                                             \
-        const char *str;                                                \
-        if (err) {                                                      \
-                cuGetErrorString(err, &str);                            \
-                err_exit(str);                                          \
-        }                                                               \
+#define CHECK(fcn) do {							\
+	CUresult err = fcn;						\
+	const char *str;						\
+	if (err) {							\
+		cuGetErrorString(err, &str);				\
+		err_exit(str);						\
+	}								\
 } while (0)
 
 static uint64_t
 pin_buffer(void *ptr, size_t size)
 {
-        uint64_t id;
-        unsigned int one = 1;
+	uint64_t id;
+	unsigned int one = 1;
 
-        /*
-         * Disables all data transfer optimizations
-         */
-        CHECK(cuPointerSetAttribute(&one,
-            CU_POINTER_ATTRIBUTE_SYNC_MEMOPS, (CUdeviceptr)ptr));
+	/*
+	 * Disables all data transfer optimizations
+	 */
+	CHECK(cuPointerSetAttribute(&one,
+	    CU_POINTER_ATTRIBUTE_SYNC_MEMOPS, (CUdeviceptr)ptr));
 
-        CHECK(cuPointerGetAttribute(&id,
-            CU_POINTER_ATTRIBUTE_BUFFER_ID, (CUdeviceptr)ptr));
+	CHECK(cuPointerGetAttribute(&id,
+	    CU_POINTER_ATTRIBUTE_BUFFER_ID, (CUdeviceptr)ptr));
 
-        return id;
+	return id;
 }
 
 static void *
 netgpu_alloc_gpu_memory(size_t size)
 {
-        void *gpu;
-        uint64_t id;
+	void *gpu;
+	uint64_t id;
 
 	printf("allocating %ld from gpu...\n", size);
-        CHECK(cudaMalloc(&gpu, size));
+	CHECK(cudaMalloc(&gpu, size));
 
-        id = pin_buffer(gpu, size);
+	id = pin_buffer(gpu, size);
 
-        return gpu;
+	return gpu;
 }
 
 static void *
@@ -320,24 +320,24 @@ netgpu_free_gpu_memory(void *area, size_t size)
 void *
 netgpu_alloc_memory(size_t size, bool gpumem)
 {
-        void *area = NULL;
+	void *area = NULL;
 
-        if (!gpumem)
-                area = netgpu_alloc_host_memory(size);
+	if (!gpumem)
+		area = netgpu_alloc_host_memory(size);
 #ifdef USE_CUDA
-        else
-                area = netgpu_alloc_gpu_memory(size);
+	else
+		area = netgpu_alloc_gpu_memory(size);
 #endif
-        return area;
+	return area;
 }
 
 void
 netgpu_free_memory(void *area, size_t size, bool gpumem)
 {
-        if (!gpumem)
-                netgpu_free_host_memory(area, size);
+	if (!gpumem)
+		netgpu_free_host_memory(area, size);
 #ifdef USE_CUDA
-        else
-                netgpu_free_gpu_memory(area, size);
+	else
+		netgpu_free_gpu_memory(area, size);
 #endif
 }
