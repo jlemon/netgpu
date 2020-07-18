@@ -1,7 +1,9 @@
 
+include ../compile.mk
+
 INC = -I..
-LIBS = -L.. -lnetgpu
-CFLAGS = -g -Wall $(INC) $(DEFINES)
+LIBS = -L.. -lnetgpu $(EXTRA_LIBS)
+CFLAGS = -g $(OPTS) $(INC) $(DEFINES)
 
 targets := memarea context socket netqueue
 
