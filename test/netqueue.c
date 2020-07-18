@@ -104,16 +104,21 @@ static void
 test_ordering(void)
 {
 	struct netgpu_ctx *ctx = NULL;
+	struct netgpu_ifq *ifq = NULL;
 	struct netgpu_skq *skq = NULL;
 	void *ptr[2];
 	int fd;
 
-	CHK_SYSCALL(fd = socket(AF_INET6, SOCK_STREAM, IPPROTO_TCP));
-
 	ctx = setup_ctx(array_size(ptr), ptr);
+
+	CHK_ERR(netgpu_open_ifq(&ifq, ctx, opt.queue_id, opt.fill_entries));
+	printf("returned queue %d\n", netgpu_ifq_id(ifq));
+
+	CHK_SYSCALL(fd = socket(AF_INET6, SOCK_STREAM, IPPROTO_TCP));
 	CHK_ERR(netgpu_attach_socket(&skq, ctx, fd, opt.nentries));
-	
+
 	close_ctx(ctx, array_size(ptr), ptr);
+	netgpu_close_ifq(&ifq);
 
 	close(fd);
 	netgpu_detach_socket(&skq);
@@ -126,7 +131,7 @@ main(int argc, char **argv)
 
 	printf("using queue id %d\n", opt.queue_id);
 	test_one(opt.queue_id);
-//	test_ordering();
+	test_ordering();
 
 	return 0;
 }
