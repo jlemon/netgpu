@@ -184,11 +184,11 @@ netgpu_attach_socket(struct netgpu_skq **skqp, struct netgpu_ctx *ctx, int fd,
 		err_exit("setsockopt(SO_ZEROCOPY)");
 
 	/* for TX - specify outgoing device */
-        if (setsockopt(fd, SOL_SOCKET, SO_BINDTOIFINDEX, &ctx->ifindex,
-                       sizeof(ctx->ifindex)))
-                err_exit("setsockopt(SO_BINDTOIFINDEX)");
+	if (setsockopt(fd, SOL_SOCKET, SO_BINDTOIFINDEX, &ctx->ifindex,
+		       sizeof(ctx->ifindex)))
+		err_exit("setsockopt(SO_BINDTOIFINDEX)");
 
-        /* attaches sk to ctx and sets up custom data_ready hook */
+	/* attaches sk to ctx and sets up custom data_ready hook */
 	if (ioctl(fd, NETGPU_SOCK_IOCTL_ATTACH_QUEUES, &p))
 		err_exit("ioctl(ATTACH_QUEUES)");
 
@@ -274,7 +274,7 @@ netgpu_attach_region(struct netgpu_ctx *ctx, struct netgpu_mem *mem, int idx)
 
 int
 netgpu_register_memory(struct netgpu_ctx *ctx, void *va, size_t size,
-                       enum netgpu_memtype memtype)
+		       enum netgpu_memtype memtype)
 {
 	int idx, err;
 
@@ -340,18 +340,18 @@ int
 netgpu_add_memarea(struct netgpu_mem *mem, void *va, size_t size,
 		   enum netgpu_memtype memtype)
 {
-        struct netgpu_region_param p;
+	struct netgpu_region_param p;
 	int idx;
 
-        p.iov.iov_base = va;
-        p.iov.iov_len = size;
-        p.memtype = memtype;
+	p.iov.iov_base = va;
+	p.iov.iov_len = size;
+	p.memtype = memtype;
 
 	idx = ioctl(mem->fd, NETGPU_MEM_IOCTL_ADD_REGION, &p);
 	if (idx < 0)
 		idx = -errno;
 
-        return idx;
+	return idx;
 }
 
 void
@@ -409,50 +409,51 @@ netgpu_free_host_memory(void *area, size_t size)
 }
 
 #ifdef USE_CUDA
-#define CHK_CUDA(fcn) do {                                              \
-        CUresult err = fcn;                                             \
-        const char *str;                                                \
-        if (err) {                                                      \
-                cuGetErrorString(err, &str);                            \
-                err_exit(str);                                          \
-        }                                                               \
+#define CHK_CUDA(fcn) do {						\
+	CUresult err = fcn;						\
+	const char *str;						\
+	if (err) {							\
+		cuGetErrorString(err, &str);				\
+		err_exit(str);						\
+	}								\
 } while (0)
 
 static uint64_t
 pin_buffer(void *ptr, size_t size)
 {
-        uint64_t id;
-        unsigned int one = 1;
+	uint64_t id;
+	unsigned int one = 1;
 
-        /*
-         * Disables all data transfer optimizations
-         */
-        CHK_CUDA(cuPointerSetAttribute(&one,
-            CU_POINTER_ATTRIBUTE_SYNC_MEMOPS, (CUdeviceptr)ptr));
+	/*
+	 * Disables all data transfer optimizations
+	 */
+	CHK_CUDA(cuPointerSetAttribute(&one,
+	    CU_POINTER_ATTRIBUTE_SYNC_MEMOPS, (CUdeviceptr)ptr));
 
-        CHK_CUDA(cuPointerGetAttribute(&id,
-            CU_POINTER_ATTRIBUTE_BUFFER_ID, (CUdeviceptr)ptr));
+	CHK_CUDA(cuPointerGetAttribute(&id,
+	    CU_POINTER_ATTRIBUTE_BUFFER_ID, (CUdeviceptr)ptr));
 
-        return id;
+	return id;
 }
 
 static void *
 netgpu_alloc_cuda_memory(size_t size)
 {
-        void *gpu;
-        uint64_t id;
+	void *gpu;
+	uint64_t id;
 
-printf("allocating %ld from gpu...\n", size);
-        CHK_CUDA(cudaMalloc(&gpu, size));
+	printf("allocating %ld from gpu...\n", size);
+	CHK_CUDA(cudaMalloc(&gpu, size));
 
-        id = pin_buffer(gpu, size);
+	id = pin_buffer(gpu, size);
 
-        return gpu;
+	return gpu;
 }
 
 static void *
 netgpu_free_cuda_memory(void *area, size_t size)
 {
+	printf("freeing %ld from gpu...\n", size);
 	CHK_CUDA(cudaFree(area));
 }
 #endif
@@ -460,25 +461,25 @@ netgpu_free_cuda_memory(void *area, size_t size)
 void *
 netgpu_alloc_memory(size_t size, enum netgpu_memtype memtype)
 {
-        void *area = NULL;
+	void *area = NULL;
 
-        if (memtype == MEMTYPE_HOST)
-                area = netgpu_alloc_host_memory(size);
+	if (memtype == MEMTYPE_HOST)
+		area = netgpu_alloc_host_memory(size);
 #ifdef USE_CUDA
-        else if (memtype == MEMTYPE_CUDA)
-                area = netgpu_alloc_cuda_memory(size);
+	else if (memtype == MEMTYPE_CUDA)
+		area = netgpu_alloc_cuda_memory(size);
 #endif
-        return area;
+	return area;
 }
 
 void
 netgpu_free_memory(void *area, size_t size, enum netgpu_memtype memtype)
 {
-        if (memtype == MEMTYPE_HOST)
-                netgpu_free_host_memory(area, size);
+	if (memtype == MEMTYPE_HOST)
+		netgpu_free_host_memory(area, size);
 #ifdef USE_CUDA
-        else if (memtype == MEMTYPE_CUDA)
-                netgpu_free_cuda_memory(area, size);
+	else if (memtype == MEMTYPE_CUDA)
+		netgpu_free_cuda_memory(area, size);
 #endif
 	else
 		stop_here("Unhandled memtype: %d", memtype);
