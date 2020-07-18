@@ -74,12 +74,25 @@ static inline bool sq_cons_empty(struct shared_queue *q)
 	return q->cached_prod == q->cached_cons;
 }
 
+static inline unsigned __sq_cons_ready(struct shared_queue *q)
+{
+	return q->cached_prod - q->cached_cons;
+}
+
 static inline unsigned sq_cons_ready(struct shared_queue *q)
 {
 	if (q->cached_prod == q->cached_cons)
 		__sq_load_acquire_prod(q);
 
 	return q->cached_prod - q->cached_cons;
+}
+
+static inline bool sq_cons_avail(struct shared_queue *q, unsigned count)
+{
+	if (count <= __sq_cons_ready(q))
+		return true;
+	__sq_load_acquire_prod(q);
+	return count <= __sq_cons_ready(q);
 }
 
 static inline void *sq_get_ptr(struct shared_queue *q, unsigned idx)

@@ -18,16 +18,30 @@
 
 #define err_exit(...) err_with(errno, __VA_ARGS__)
 
-#define ERR(fcn) do {							\
-	int err = fcn;							\
-	if (err)							\
-		errx(1, "%s:%d error %d", __FILE__, __LINE__, err);	\
-} while (0)
+#define ERROR_HERE(s, e, fmt, ...)					\
+	error_at_line(s, e, __FILE__, __LINE__, fmt, __VA_ARGS__);
 
-#define SANITY(...) do {						\
-	if (! (__VA_ARGS__))						\
-		stop_here(#__VA_ARGS__);				\
-} while (0)
+#define CHK_SYSCALL(fcn) ({						\
+	if ((fcn) < 0)							\
+		ERROR_HERE(1, errno, "%s", #fcn);			\
+})
+
+#define CHK_ERR(fcn) ({							\
+	int err = fcn;							\
+	if (err < 0)							\
+		ERROR_HERE(1, -err, "%s", #fcn);			\
+})
+
+#define CHECK_MSG(val, fmt, ...) ({					\
+	if (!(val))							\
+		ERROR_HERE(1, 0, fmt, __VA_ARGS__);			\
+})
+
+#define CHECK(val) ({							\
+	if (!(val))							\
+		ERROR_HERE(1, 0, "%s", #val);				\
+})
+
 
 #define array_size(x)   (sizeof(x) / sizeof((x)[0]))
 
