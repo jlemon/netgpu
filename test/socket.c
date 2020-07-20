@@ -14,10 +14,12 @@ struct {
 	const char *ifname;
 	size_t sz;
 	int nentries;
+	int memtype;
 } opt = {
-	.ifname 	= "eth0",
-	.sz 		= 1024 * 64,
-	.nentries 	= 1024,
+	.ifname		= "eth0",
+	.sz		= 1024 * 64,
+	.nentries	= 1024,
+	.memtype	= MEMTYPE_HOST,
 };
 
 static void
@@ -26,7 +28,7 @@ usage(const char *prog)
 	error(1, 0, "Usage: %s [options]", prog);
 }
 
-#define OPTSTR "i:s:"
+#define OPTSTR "i:s:m"
 
 static void
 parse_cmdline(int argc, char **argv)
@@ -40,6 +42,9 @@ parse_cmdline(int argc, char **argv)
 			break;
 		case 's':
 			opt.sz = atoi(optarg);
+			break;
+		case 'm':
+			opt.memtype = MEMTYPE_CUDA;
 			break;
 		default:
 			usage(basename(argv[0]));
@@ -56,11 +61,11 @@ setup_ctx(int count, void *ptr[])
 	CHK_ERR(netgpu_open_ctx(&ctx, opt.ifname));
 
 	for (i = 0; i < count; i++) {
-		ptr[i] = netgpu_alloc_memory(opt.sz, MEMTYPE_HOST);
+		ptr[i] = netgpu_alloc_memory(opt.sz, opt.memtype);
 		CHECK(ptr[i]);
 
 		CHK_ERR(netgpu_register_memory(ctx, ptr[i], opt.sz,
-					       MEMTYPE_HOST));
+					       opt.memtype));
 	}
 
 	return ctx;
@@ -74,7 +79,7 @@ close_ctx(struct netgpu_ctx *ctx, int count, void *ptr[])
 	netgpu_close_ctx(&ctx);
 
 	for (i = 0; i < count; i++)
-		netgpu_free_memory(ptr[i], opt.sz, MEMTYPE_HOST);
+		netgpu_free_memory(ptr[i], opt.sz, opt.memtype);
 }
 
 static void

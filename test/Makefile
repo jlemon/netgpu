@@ -5,7 +5,7 @@ INC = -I..
 LIBS = -L.. -lnetgpu $(EXTRA_LIBS)
 CFLAGS = -g $(OPTS) $(INC) $(DEFINES)
 
-targets := memarea context socket netqueue
+targets := memarea context dmamap socket netqueue
 
 all: $(targets)
 
