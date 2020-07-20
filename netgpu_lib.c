@@ -5,10 +5,12 @@
 #include <string.h>
 #include <stdint.h>
 #include <stdbool.h>
+#include <unistd.h>
 #include <fcntl.h>
 #include <sys/socket.h>
 #include <sys/mman.h>
 #include <sys/param.h>
+#include <sys/ioctl.h>
 #include <net/if.h>
 #include <linux/sockios.h>
 
@@ -134,6 +136,7 @@ netgpu_recycle_batch(struct netgpu_ifq *ifq, struct iovec **iov, int count)
 		addrp = sq_prod_get_ptr(&ifq->fill);
 		*addrp = (uint64_t)iov[i]->iov_base & ~(PAGE_SIZE - 1);
 	}
+	return true;
 }
 
 void

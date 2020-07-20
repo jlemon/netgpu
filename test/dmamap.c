@@ -69,9 +69,8 @@ test_memarea(size_t sz)
 {
 	struct netgpu_mem *mem = NULL;
 	void *ptr;
-	int idx;
 
-	idx = open_memarea(&mem, &ptr, sz);
+	open_memarea(&mem, &ptr, sz);
 	close_memarea(&mem, ptr, sz);
 }
 
@@ -81,9 +80,8 @@ test_ctx_nop(const char *ifname, size_t sz)
 	struct netgpu_mem *mem = NULL;
 	struct netgpu_ctx *ctx = NULL;
 	void *ptr;
-	int idx;
 
-	idx = open_memarea(&mem, &ptr, sz);
+	open_memarea(&mem, &ptr, sz);
 
 	CHK_ERR(netgpu_open_ctx(&ctx, ifname));
 	netgpu_close_ctx(&ctx);
@@ -147,7 +145,6 @@ test_dmamap3(const char *ifname, size_t sz)
 static void
 test_dmamap4(const char *ifname, size_t sz)
 {
-	struct netgpu_mem *mem = NULL;
 	struct netgpu_ctx *ctx = NULL;
 	void *ptr;
 

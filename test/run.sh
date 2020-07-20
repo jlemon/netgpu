@@ -44,7 +44,7 @@ function test_suite() {
 
 test_suite
 
-cuda=$(test -e /usr/local/cuda/bin/nvcc && echo "1")
-if [ $cuda -eq 1 ]; then
+cuda=$(test -e /usr/local/cuda/bin/nvcc && echo 1)
+if [[ $cuda ]]; then
      test_suite -m
 fi
