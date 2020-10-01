@@ -26,6 +26,7 @@
 struct netgpu_skq {
 	struct shared_queue rx;
 	struct shared_queue cq;
+	struct shared_queue meta;
 };
 
 struct netgpu_ifq {
@@ -91,27 +92,45 @@ netgpu_mmap_ifq(struct netgpu_ifq *ifq, struct netgpu_ifq_param *p)
 	return netgpu_mmap_queue(ifq->fd, &ifq->fill, &p->fill);
 }
 
-void
-netgpu_populate_ring(struct netgpu_ifq *ifq, uint64_t addr, int count)
+static void
+netgpu_populate(struct shared_queue *prod, uint64_t addr, int count, int size)
 {
 	uint64_t *addrp;
 	int i;
 
 	/* ring entries will be power of 2. */
-	if (sq_prod_space(&ifq->fill) < count)
+	if (sq_prod_space(prod) < count)
 		err_exit("sq_prod_space");
 
 	for (i = 0; i < count; i++) {
-		addrp = sq_prod_reserve(&ifq->fill);
-		*addrp = (uint64_t)addr + i * PAGE_SIZE;
+		addrp = sq_prod_reserve(prod);
+		*addrp = (uint64_t)addr + i * size;
 	}
-	sq_prod_submit(&ifq->fill);
+	sq_prod_submit(prod);
+}
+
+void
+netgpu_populate_ring(struct netgpu_ifq *ifq, uint64_t addr, int count)
+{
+	netgpu_populate(&ifq->fill, addr, count, PAGE_SIZE);
+}
+
+void
+netgpu_populate_meta(struct netgpu_skq *skq, uint64_t addr, int count, int size)
+{
+	netgpu_populate(&skq->meta, addr, count, size);
 }
 
 int
-netgpu_get_rx_batch(struct netgpu_skq *skq, struct iovec **iov, int count)
+netgpu_get_rx_batch(struct netgpu_skq *skq, struct iovec *iov[], int count)
 {
 	return sq_cons_batch(&skq->rx, (void **)iov, count);
+}
+
+int
+netgpu_get_cq_batch(struct netgpu_skq *skq, uint64_t *notify[], int count)
+{
+	return sq_cons_batch(&skq->cq, (void **)notify, count);
 }
 
 void
@@ -146,6 +165,21 @@ netgpu_recycle_complete(struct netgpu_ifq *ifq)
 }
 
 void
+netgpu_recycle_meta(struct netgpu_skq *skq, void *ptr)
+{
+	uint64_t *addrp;
+
+	addrp = sq_prod_reserve(&skq->meta);
+	*addrp = (uint64_t)ptr;		/* XXX should mask here */
+}
+
+void
+netgpu_submit_meta(struct netgpu_skq *skq)
+{
+	sq_prod_submit(&skq->meta);
+}
+
+void
 netgpu_detach_socket(struct netgpu_skq **skqp)
 {
 	struct netgpu_skq *skq = *skqp;
@@ -155,6 +189,9 @@ netgpu_detach_socket(struct netgpu_skq **skqp)
 
 	if (skq->cq.map_ptr)
 		munmap(skq->cq.map_ptr, skq->cq.map_sz);
+
+	if (skq->meta.map_ptr)
+		munmap(skq->meta.map_ptr, skq->meta.map_sz);
 
 	free(skq);
 	*skqp = NULL;
@@ -200,6 +237,38 @@ netgpu_attach_socket(struct netgpu_skq **skqp, struct netgpu_ctx *ctx, int fd,
 		err_with(-err, "netgpu_mmap_socket");
 
 	*skqp = skq;
+
+	return 0;
+}
+
+int
+netgpu_add_meta(struct netgpu_skq *skq, int fd, void *addr, size_t len,
+		int nentries, int meta_len)
+{
+	struct netgpu_socket_param p;
+	int rc;
+
+	if (skq->meta.entries)
+		return -EALREADY;
+
+	memset(&p, 0, sizeof(p));
+	p.resv = 1;
+	p.iov.iov_base = addr;
+	p.iov.iov_len = len;
+	p.meta.elt_sz = sizeof(uint64_t);
+	p.meta.entries = nentries;
+	p.meta_len = meta_len;
+
+	/* attaches sk to ctx and sets up custom data_ready hook */
+	if (ioctl(fd, NETGPU_SOCK_IOCTL_ATTACH_QUEUES, &p))
+		err_exit("ioctl(ATTACH_META)");
+
+	rc = netgpu_mmap_queue(fd, &skq->meta, &p.meta);
+	if (rc)
+		return rc;
+
+#define DLEN(_q) _q.data, _q.data + (_q.entries * _q.elt_sz)
+	printf("skq.meta: [%p-%p]\n", DLEN(skq->meta));
 
 	return 0;
 }

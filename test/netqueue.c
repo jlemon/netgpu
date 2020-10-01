@@ -119,7 +119,7 @@ test_ordering(void)
 	CHK_ERR(netgpu_open_ifq(&ifq, ctx, opt.queue_id, opt.fill_entries));
 	printf("returned queue %d\n", netgpu_ifq_id(ifq));
 
-	CHK_SYSCALL(fd = socket(AF_INET6, SOCK_STREAM, IPPROTO_TCP));
+	CHK_SYS(fd = socket(AF_INET6, SOCK_STREAM, IPPROTO_TCP));
 	CHK_ERR(netgpu_attach_socket(&skq, ctx, fd, opt.nentries));
 
 	close_ctx(ctx, array_size(ptr), ptr);

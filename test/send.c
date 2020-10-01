@@ -129,7 +129,7 @@ show_node_addr(struct node *node)
 	    (node->family == AF_INET) ? sizeof(struct sockaddr_in) :
 					sizeof(struct sockaddr_in6),
 	    host, NI_MAXHOST, NULL, 0, NI_NUMERICHOST);
-	CHECK_MSG(rc != 0, "getnameinfo: %s", gai_strerror(rc));
+	CHECK_MSG(rc == 0, "getnameinfo: %s", gai_strerror(rc));
 	return host;
 }
 
@@ -145,7 +145,7 @@ name2addr(const char *name, struct node *node, bool local)
 	node->addrlen = 0;
 
 	rc = getaddrinfo(name, NULL, &hints, &result);
-	CHECK_MSG(rc != 0, "getaddrinfo: %s", gai_strerror(rc));
+	CHECK_MSG(rc == 0, "getaddrinfo: %s", gai_strerror(rc));
 
 	for (ai = result; ai != NULL; ai = ai->ai_next) {
 		if (!local)
@@ -255,7 +255,7 @@ send_loop(int fd, struct netgpu_skq *skq, uint64_t addr)
 		while (busy[slice]) {
 			if (netgpu_get_cq_batch(skq, &notify, 1)) {
 				n = *notify % N_SLICES;
-				CHECK_MSG(!busy[n], "Slice %d !busy\n", n);
+				CHECK_MSG(busy[n], "Slice %d !busy\n", n);
 				busy[n] = false;
 			} else {
 				CHECK(!waited);
@@ -283,7 +283,7 @@ send_loop(int fd, struct netgpu_skq *skq, uint64_t addr)
 
 		if (netgpu_get_cq_batch(skq, &notify, 1)) {
 			n = *notify % N_SLICES;
-			CHECK_MSG(!busy[n], "Slice %d !busy\n", n);
+			CHECK_MSG(busy[n], "Slice %d !busy\n", n);
 			busy[n] = false;
 		}
 	}
@@ -308,7 +308,7 @@ test_send(const char *hostname, short port)
 	CHK_ERR(netgpu_open_ifq(&ifq, ctx, opt.queue_id, opt.fill_entries));
 	netgpu_populate_ring(ifq, (uint64_t)pktbuf, opt.fill_entries);
 
-	CHK_SYSCALL(fd = socket(AF_INET6, SOCK_STREAM, IPPROTO_TCP));
+	CHK_SYS(fd = socket(AF_INET6, SOCK_STREAM, IPPROTO_TCP));
 	CHK_ERR(netgpu_attach_socket(&skq, ctx, fd, opt.nentries));
 
 	tcp_connect(fd, hostname, port);

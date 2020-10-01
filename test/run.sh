@@ -1,7 +1,8 @@
 #!/bin/bash
 
 function mod_refs() {
-    echo $(lsmod | grep ^netgpu | awk '{$s += $3} END {print $s}')
+    local count=$(lsmod | grep ^netgpu | awk '{$s += $3} END {print $s}')
+    echo $(($count + 0))
 }
 
 function check() {

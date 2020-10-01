@@ -40,6 +40,7 @@ parse_cmdline(int argc, char **argv)
 		}
 	}
 }
+
 static void
 test_normal(size_t sz, int count)
 {

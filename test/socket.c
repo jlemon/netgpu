@@ -90,7 +90,7 @@ test_one(void)
 	void *ptr[2];
 	int fd;
 
-	CHK_SYSCALL(fd = socket(AF_INET6, SOCK_STREAM, IPPROTO_TCP));
+	CHK_SYS(fd = socket(AF_INET6, SOCK_STREAM, IPPROTO_TCP));
 
 	ctx = setup_ctx(array_size(ptr), ptr);
 	CHK_ERR(netgpu_attach_socket(&skq, ctx, fd, opt.nentries));
@@ -108,7 +108,7 @@ test_ordering(void)
 	void *ptr[2];
 	int fd;
 
-	CHK_SYSCALL(fd = socket(AF_INET6, SOCK_STREAM, IPPROTO_TCP));
+	CHK_SYS(fd = socket(AF_INET6, SOCK_STREAM, IPPROTO_TCP));
 
 	ctx = setup_ctx(array_size(ptr), ptr);
 	CHK_ERR(netgpu_attach_socket(&skq, ctx, fd, opt.nentries));

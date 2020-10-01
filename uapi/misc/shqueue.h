@@ -1,22 +1,15 @@
-#pragma once
+#ifndef _UAPI_MISC_SHQUEUE_H
+#define _UAPI_MISC_SHQUEUE_H
 
-/* XXX
- * This is not a user api, but placed here for prototyping, in order to
- * avoid two nigh identical copies for user and kernel space.
+/* Placed under UAPI in order to avoid two identical copies between
+ * user and kernel space.
  */
-
-/* kernel only */
-struct shared_queue_map {
-	unsigned prod ____cacheline_aligned_in_smp;
-	unsigned cons ____cacheline_aligned_in_smp;
-	char data[] ____cacheline_aligned_in_smp;
-};
 
 /* user and kernel private copy - identical in order to share sq* fcns */
 struct shared_queue {
 	unsigned *prod;
 	unsigned *cons;
-	char *data;
+	unsigned char *data;
 	unsigned elt_sz;
 	unsigned mask;
 	unsigned cached_prod;
@@ -64,7 +57,7 @@ static inline void sq_cons_refresh(struct shared_queue *q)
 	__sq_load_acquire_prod(q);
 }
 
-static inline bool sq_empty(struct shared_queue *q)
+static inline bool sq_is_empty(struct shared_queue *q)
 {
 	return READ_ONCE(*q->prod) == READ_ONCE(*q->cons);
 }
@@ -81,10 +74,10 @@ static inline unsigned __sq_cons_ready(struct shared_queue *q)
 
 static inline unsigned sq_cons_ready(struct shared_queue *q)
 {
-	if (q->cached_prod == q->cached_cons)
+	if (sq_cons_empty(q))
 		__sq_load_acquire_prod(q);
 
-	return q->cached_prod - q->cached_cons;
+	return __sq_cons_ready(q);
 }
 
 static inline bool sq_cons_avail(struct shared_queue *q, unsigned count)
@@ -129,8 +122,6 @@ sq_peek_batch(struct shared_queue *q, void **ptr, unsigned count)
 	idx = q->cached_cons;
 	for (i = 0; i < count; i++)
 		ptr[i] = sq_get_ptr(q, idx++);
-
-	q->cached_cons += count;
 
 	return count;
 }
@@ -203,3 +194,15 @@ static inline void sq_prod_submit(struct shared_queue *q)
 {
 	__sq_store_release_prod(q);
 }
+
+/* XXX strongly dislike this API */
+static inline void sq_prod_advance(struct shared_queue *q, unsigned prod)
+{
+	if (prod - q->cached_prod > 0)
+		return;
+
+	smp_wmb(); /* B, matches C */
+	WRITE_ONCE(*q->prod, prod);
+}
+
+#endif /* _UAPI_MISC_SHQUEUE_H */

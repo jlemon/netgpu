@@ -18,10 +18,10 @@
 
 #define err_exit(...) err_with(errno, __VA_ARGS__)
 
-#define ERROR_HERE(s, e, fmt, ...)					\
-	error_at_line(s, e, __FILE__, __LINE__, fmt, __VA_ARGS__);
+#define ERROR_HERE(s, e, ...)						\
+	error_at_line(s, e, __FILE__, __LINE__, __VA_ARGS__);
 
-#define CHK_SYSCALL(fcn) ({						\
+#define CHK_SYS(fcn) ({							\
 	if ((fcn) < 0)							\
 		ERROR_HERE(1, errno, "%s", #fcn);			\
 })
@@ -32,16 +32,15 @@
 		ERROR_HERE(1, -err, "%s", #fcn);			\
 })
 
-#define CHECK_MSG(val, fmt, ...) ({					\
+#define CHECK_MSG(val, ...) ({						\
 	if (!(val))							\
-		ERROR_HERE(1, 0, fmt, __VA_ARGS__);			\
+		ERROR_HERE(1, 0, __VA_ARGS__);				\
 })
 
 #define CHECK(val) ({							\
 	if (!(val))							\
 		ERROR_HERE(1, 0, "%s", #val);				\
 })
-
 
 #define array_size(x)   (sizeof(x) / sizeof((x)[0]))
 

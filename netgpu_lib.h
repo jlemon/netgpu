@@ -25,11 +25,19 @@ struct netgpu_ctx;
 struct netgpu_mem;
 
 void netgpu_populate_ring(struct netgpu_ifq *ifq, uint64_t addr, int count);
-int netgpu_get_rx_batch(struct netgpu_skq *skq, struct iovec **iov, int count);
+int netgpu_get_rx_batch(struct netgpu_skq *skq, struct iovec *iov[], int count);
+int netgpu_get_cq_batch(struct netgpu_skq *skq, uint64_t *notify[], int count);
 void netgpu_recycle_buffer(struct netgpu_ifq *ifq, void *ptr);
 bool netgpu_recycle_batch(struct netgpu_ifq *ifq, struct iovec **iov,
 			  int count);
 void netgpu_recycle_complete(struct netgpu_ifq *ifq);
+
+void netgpu_populate_meta(struct netgpu_skq *skq, uint64_t addr, int count,
+			  int size);
+void netgpu_recycle_meta(struct netgpu_skq *skq, void *ptr);
+void netgpu_submit_meta(struct netgpu_skq *skq);
+int netgpu_add_meta(struct netgpu_skq *skq, int fd, void *addr, size_t len,
+		    int nentries, int meta_len);
 
 int netgpu_attach_socket(struct netgpu_skq **skqp, struct netgpu_ctx *ctx,
 			 int fd, int nentries);
